@@ -27,7 +27,8 @@
     "react-dom": "^18.1.0",
     "styled-components": "^5.3.5",
     "web3-eth-abi": "^1.7.5",
-    "web3-utils": "^1.7.5"
+    "web3-utils": "^1.7.5",
+    "web3modal": "^1.9.8"
   },
   "devDependencies": {
     "@types/node": "^17.0.35",

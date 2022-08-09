@@ -9,12 +9,14 @@ import {
   useDisconnect
 } from "@thirdweb-dev/react"
 import axios from "axios"
-import { utils } from "ethers"
+import { ethers, utils } from "ethers"
 import { useEffect, useState } from "react"
 
 import EIP712Domain from "eth-typed-data"
 import * as ethUtil from 'ethereumjs-util'
 import BigNumber from "bignumber.js"
+import Web3Modal from 'web3modal';
+import GNOSIS_SAFE_ABI from "../abis/gnosis-safe"
 
 export const ConnectWallet = () => {
   const connectWithCoinbaseWallet = useCoinbaseWallet()
@@ -135,7 +137,6 @@ export const ConnectWallet = () => {
   const gnosisProposeTx = async (safe: string, tx: any) => {
     try {
       const res = await axios.post(`https://safe-transaction.rinkeby.gnosis.io/api/v1/safes/${safe}/transactions/`, tx)
-      console.log(res.data)
       return res.data
     } catch(err) {
       console.log(err)
@@ -184,16 +185,33 @@ export const ConnectWallet = () => {
       data: utils.arrayify(txn.data)
     });
 
-    const signer = async (data: any) => {
+    const web3Modal = new Web3Modal()
+    const connection = await web3Modal.connect()
+    const provider = new ethers.providers.Web3Provider(connection)
+    const signer1 = provider.getSigner()
+    const contract = new ethers.Contract(safe, GNOSIS_SAFE_ABI, signer1)
+
+    // const contractTransactionHash = "0x" + safeTx.signHash().toString('hex')
+    const contractTransactionHash = await contract.getTransactionHash(
+      recipient, 
+      amount, 
+      utils.arrayify(txn.data), 
+      safeTx.operation, 
+      safeTx.safeTxGas, 
+      safeTx.baseGas, 
+      safeTx.gasPrice, 
+      safeTx.gasToken, 
+      safeTx.refundReceiver, 
+      safeTx.nonce
+    )
+    
+    const getSignature = async (data: any) => {
       let {r, s, v} = ethUtil.ecsign(data, ethUtil.toBuffer(privateKey))
       return ethUtil.toRpcSig(v, r, s)
     }
 
-    // const contractTransactionHash = "0x" + safeTx.signHash().toString('hex')
-    const contractTransactionHash = "0x4018bba6326d4a5a8c1cf9296372a5ea276e6b47c53f3714239a4e1d750ab605"
-
-    // const signature = await safeTx.sign(signer)
-    const signature = await signer(ethUtil.toBuffer(contractTransactionHash))
+    // const signature = await safeTx.sign(getSignature)
+    const signature = await getSignature(ethUtil.toBuffer(contractTransactionHash))
 
     const toSend = {
       ...txn,
@@ -203,14 +221,12 @@ export const ConnectWallet = () => {
     }
 
     const data = await gnosisProposeTx(safe, toSend)
-    console.log("data", data)
   }
 
   const handleTransfer = async (): Promise<void> => {
     const safe = await getSafe()
     const signer = '0x6a2EB7F6734F4B79104A38Ad19F1c4311e5214c8'
     const privateKey = '0x66e91912f68828c17ad3fee506b7580c4cd19c7946d450b4b0823ac73badc878'
-    console.log("safe", safe);
 
 //    await execute(address ?? '', privateKey)
     await submit(address ?? '', signer, privateKey)
