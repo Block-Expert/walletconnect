@@ -188,8 +188,8 @@ export const ConnectWallet = () => {
     const web3Modal = new Web3Modal()
     const connection = await web3Modal.connect()
     const provider = new ethers.providers.Web3Provider(connection)
-    const signer1 = provider.getSigner()
-    const contract = new ethers.Contract(safe, GNOSIS_SAFE_ABI, signer1)
+    const signer = provider.getSigner()
+    const contract = new ethers.Contract(safe, GNOSIS_SAFE_ABI, signer)
 
     // const contractTransactionHash = "0x" + safeTx.signHash().toString('hex')
     const contractTransactionHash = await contract.getTransactionHash(
@@ -204,15 +204,28 @@ export const ConnectWallet = () => {
       safeTx.refundReceiver, 
       safeTx.nonce
     )
-    
+
+    //await contract.approveHash(contractTransactionHash)
+ 
     const getSignature = async (data: any) => {
-      let {r, s, v} = ethUtil.ecsign(data, ethUtil.toBuffer(privateKey))
+      let {r, s, v} = ethUtil.ecsign(data, Buffer.from(privateKey, "hex"))
       return ethUtil.toRpcSig(v, r, s)
     }
 
     // const signature = await safeTx.sign(getSignature)
     const signature = await getSignature(ethUtil.toBuffer(contractTransactionHash))
+    
+    // this is the part using metamask to sign
+    /*
+    const signature = await signer.signMessage(contractTransactionHash)
+    const ethereum = window.ethereum
+    const newAccounts = await ethereum?.request({method: 'eth_accounts'})
 
+    const sss = await ethereum?.request({
+      method: 'personal_sign',
+      params: [contractTransactionHash, newAccounts[0]]
+    })
+    */
     const toSend = {
       ...txn,
       sender,
@@ -220,16 +233,17 @@ export const ConnectWallet = () => {
       signature,
     }
 
-    const data = await gnosisProposeTx(safe, toSend)
+    await gnosisProposeTx(safe, toSend)
   }
 
   const handleTransfer = async (): Promise<void> => {
     const safe = await getSafe()
-    const signer = '0x6a2EB7F6734F4B79104A38Ad19F1c4311e5214c8'
-    const privateKey = '0x66e91912f68828c17ad3fee506b7580c4cd19c7946d450b4b0823ac73badc878'
+    const signer = process.env.SIGNER
+    const privateKey = process.env.PRIVATEKEY
 
 //    await execute(address ?? '', privateKey)
-    await submit(address ?? '', signer, privateKey)
+    await submit(address ?? '', signer ?? '', privateKey ?? '')
+    console.log("Done")
   };
 
   // If a wallet is connected, show address, chainId and disconnect button
