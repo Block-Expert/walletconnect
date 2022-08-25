@@ -12,6 +12,9 @@ On `pages/_app.tsx`, you'll find our `ThirdwebProvider` wrapping your app, this 
 
 on `pages/index.tsx`, you'll find the `useMetamask` hook that we use to connect the user's wallet to MetaMask, `useDisconnect` that we use to disconnect it, and `useAddress` to check the user's wallet address once connected. 
 
+## Usafe
+In this project, we used walletconnect.
+
 ## Learn More
 
 To learn more about thirdweb and Next.js, take a look at the following resources:
